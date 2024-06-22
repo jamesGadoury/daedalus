@@ -6,7 +6,11 @@ env = jinja2.Environment()
 
 base_cmakelist_template = env.from_string(
     "cmake_minimum_required(VERSION 3.12)\n"
-    "project({{project}})\n"
+    "project({{project}})\n\n"
+    "# Set the output directories for all build types\n"
+    "set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)\n"
+    "set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)\n"
+    "set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)\n"
     "set(CMAKE_CXX_STANDARD 20)\n"
     "set(CMAKE_EXPORT_COMPILE_COMMANDS ON)\n\n"
 )
@@ -25,7 +29,7 @@ build_script = \
     "cmake --build build\n" \
 
 exe_cmakelist_template = env.from_string(
-    "add_executable({{exe}} main.cpp)\n\n"
+    "add_executable({{exe}} src/main.cpp)\n\n"
 )
 
 exe_cmakelist_lib_modifier_template = env.from_string(
@@ -96,7 +100,9 @@ def main(args):
     with open(exe_cmakelist, "w") as f:
         f.write(exe_cmakelist_template.render(exe=exe))
     
-    exe_main = exe_dir / "main.cpp"
+    src_dir = exe_dir / "src"
+    src_dir.mkdir()
+    exe_main = src_dir / "main.cpp"
     with open(exe_main, "w") as f:
         f.write(exe_main_cpp)
 
