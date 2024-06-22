@@ -47,33 +47,6 @@ exe_main_cpp = \
     "    cout << \"hello world\" << endl;\n" \
     "}\n\n"
 
-exe_main_cpp_sfml = \
-    "#include <SFML/Graphics.hpp>\n\n" \
-    "int main()\n" \
-    "{\n" \
-    "   // create the window\n" \
-    "   sf::RenderWindow window(sf::VideoMode(800, 600), \"My window\");\n\n" \
-    "   // run the program as long as the window is open\n" \
-    "   while (window.isOpen())\n" \
-    "   {\n" \
-    "       // check all the window's events that were triggered since the last iteration of the loop\n" \
-    "       sf::Event event;\n" \
-    "       while (window.pollEvent(event))\n" \
-    "       {\n" \
-    "           // \"close requested\" event: we close the window\n" \
-    "           if (event.type == sf::Event::Closed)\n" \
-    "               window.close();\n" \
-    "       }\n\n" \
-    "       // clear the window with black color\n" \
-    "       window.clear(sf::Color::Black);\n\n" \
-    "       // draw everything here...\n" \
-    "       // window.draw(...);\n\n" \
-    "       // end the current frame\n" \
-    "       window.display();\n" \
-    "   }\n\n" \
-    "   return 0;\n" \
-    "}\n\n"
-
 exe_main_cpp_for_lib_template = env.from_string(
     "#include <iostream>\n\n"
     "#include <{{lib}}.hpp>\n\n"
@@ -140,7 +113,8 @@ def main(args):
     exe_main = src_dir / "main.cpp"
     with open(exe_main, "w") as f:
         if args.sfml:
-            f.write(exe_main_cpp_sfml)
+            with open("./templates/sfml_main.cpp", "r") as ft:
+                f.write(ft.read())
         else:
             f.write(exe_main_cpp)
 
