@@ -19,6 +19,10 @@ base_cmakelist_exe_modifier_template = env.from_string(
     "add_subdirectory({{exe}})\n\n"
 )
 
+cmakelist_template_sfml_addition = env.from_string(
+    "target_link_libraries({{target}} LINK_PUBLIC sfml-graphics)\n\n"
+)
+
 base_cmakelist_lib_modifier_template = env.from_string(
     "add_subdirectory({{lib}})\n\n"
 )
@@ -41,6 +45,33 @@ exe_main_cpp = \
     "using namespace std;\n\n" \
     "int main() {\n" \
     "    cout << \"hello world\" << endl;\n" \
+    "}\n\n"
+
+exe_main_cpp_sfml = \
+    "#include <SFML/Graphics.hpp>\n\n" \
+    "int main()\n" \
+    "{\n" \
+    "   // create the window\n" \
+    "   sf::RenderWindow window(sf::VideoMode(800, 600), \"My window\");\n\n" \
+    "   // run the program as long as the window is open\n" \
+    "   while (window.isOpen())\n" \
+    "   {\n" \
+    "       // check all the window's events that were triggered since the last iteration of the loop\n" \
+    "       sf::Event event;\n" \
+    "       while (window.pollEvent(event))\n" \
+    "       {\n" \
+    "           // \"close requested\" event: we close the window\n" \
+    "           if (event.type == sf::Event::Closed)\n" \
+    "               window.close();\n" \
+    "       }\n\n" \
+    "       // clear the window with black color\n" \
+    "       window.clear(sf::Color::Black);\n\n" \
+    "       // draw everything here...\n" \
+    "       // window.draw(...);\n\n" \
+    "       // end the current frame\n" \
+    "       window.display();\n" \
+    "   }\n\n" \
+    "   return 0;\n" \
     "}\n\n"
 
 exe_main_cpp_for_lib_template = env.from_string(
@@ -83,6 +114,8 @@ def main(args):
 
     with open(base_cmakelist, "w") as f:
         f.write(base_cmakelist_template.render(project=project))
+        if args.sfml:
+            f.write("find_package(SFML 2.5 COMPONENTS graphics REQUIRED)\n\n")
 
     script = destination / "run_build"
     with open(script, "w") as f:
@@ -90,7 +123,7 @@ def main(args):
     script.chmod(0o0777)
 
     exe = args.exe if args.exe else project 
-    exe_dir = destination / exe if args.exe else destination / "src"
+    exe_dir = destination / exe
     exe_dir.mkdir()
 
     with open(base_cmakelist, "a") as f:
@@ -99,12 +132,17 @@ def main(args):
     exe_cmakelist = exe_dir / "CMakeLists.txt"
     with open(exe_cmakelist, "w") as f:
         f.write(exe_cmakelist_template.render(exe=exe))
+        if args.sfml:
+            f.write(cmakelist_template_sfml_addition.render(target=exe))
     
     src_dir = exe_dir / "src"
     src_dir.mkdir()
     exe_main = src_dir / "main.cpp"
     with open(exe_main, "w") as f:
-        f.write(exe_main_cpp)
+        if args.sfml:
+            f.write(exe_main_cpp_sfml)
+        else:
+            f.write(exe_main_cpp)
 
     if args.lib:
         lib = args.lib
@@ -122,6 +160,8 @@ def main(args):
 
         with open(lib_dir / "CMakeLists.txt", "w") as f:
             f.write(lib_cmakelist_template.render(lib=lib))
+            if args.sfml:
+                f.write(cmakelist_template_sfml_addition.render(target=lib))
 
         with open(include_dir / f"{lib}.hpp", "w") as f:
             f.write(lib_header)
@@ -143,5 +183,6 @@ if __name__ == "__main__":
     parser.add_argument("--project", help="if provided, will be used as project name, otherwise destination is used.")
     parser.add_argument("--lib", help="if provided, it will initialize a library subfolder.")
     parser.add_argument("--exe", help="if provided, will be used as executable folder name.")
+    parser.add_argument("--sfml", help="if set, will add sfml flags", action="store_true", default=False)
 
     main(parser.parse_args())
