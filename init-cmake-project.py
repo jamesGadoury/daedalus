@@ -36,9 +36,10 @@ exe_cmakelist_template = env.from_string(
     "add_executable({{exe}} src/main.cpp)\n\n"
 )
 
-exe_cmakelist_lib_modifier_template = env.from_string(
-    "target_link_libraries({{exe}} LINK_PUBLIC {{lib}})\n\n"
+target_cmakelist_lib_modifier_template = env.from_string(
+    "target_link_libraries({{target}} LINK_PUBLIC {{libs}})\n\n"
 )
+
 
 exe_main_cpp = \
     "#include <iostream>\n\n" \
@@ -73,6 +74,15 @@ lib_cpp_template = env.from_string(
     "}\n\n"
 )
 
+def target_link_libs(target, libs=[], link_sfml=False):
+    if link_sfml:
+        libs.append("sfml-graphics")
+
+    if not libs:
+        return None
+    
+    return target_cmakelist_lib_modifier_template.render(target=target, libs=" ".join(libs))
+
 def main(args):
     destination = Path(args.destination)
     project = args.project if args.project is not None else destination.name
@@ -105,8 +115,6 @@ def main(args):
     exe_cmakelist = exe_dir / "CMakeLists.txt"
     with open(exe_cmakelist, "w") as f:
         f.write(exe_cmakelist_template.render(exe=exe))
-        if args.sfml:
-            f.write(cmakelist_template_sfml_addition.render(target=exe))
     
     src_dir = exe_dir / "src"
     src_dir.mkdir()
@@ -134,8 +142,9 @@ def main(args):
 
         with open(lib_dir / "CMakeLists.txt", "w") as f:
             f.write(lib_cmakelist_template.render(lib=lib))
-            if args.sfml:
-                f.write(cmakelist_template_sfml_addition.render(target=lib))
+            link_libs = target_link_libs(lib, link_sfml=args.sfml)
+            if link_libs is not None:
+                f.write(link_libs)
 
         with open(include_dir / f"{lib}.hpp", "w") as f:
             f.write(lib_header)
@@ -143,12 +152,19 @@ def main(args):
         with open(src_dir / f"{lib}.cpp", "w") as f:
             f.write(lib_cpp_template.render(lib=lib))
 
-        with open(exe_cmakelist, "a") as f:
-            f.write(exe_cmakelist_lib_modifier_template.render(exe=exe, lib=lib))
-
         # we overwrite the main exe logic for example lib call
         with open(exe_main, "w") as f:
             f.write(exe_main_cpp_for_lib_template.render(lib=lib))
+
+        with open(exe_cmakelist, "a") as f:
+            f.write(target_cmakelist_lib_modifier_template.render(target=exe, libs=lib))
+    else:
+        # if we didn't add the lib with deps above, we check if we should add them
+        # directly to exe cmakelist here
+        link_libs = target_link_libs(exe, link_sfml=args.sfml)
+        if link_libs is not None:
+            with open(exe_cmakelist, "a") as f:
+                f.write(link_libs)
 
 
 if __name__ == "__main__":
