@@ -70,12 +70,15 @@ lib_cpp_template = env.from_string(
     "}\n\n"
 )
 
-def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False):
+def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False, link_pcl=False):
     if link_sfml:
         libs.append("sfml-graphics")
 
     if link_eigen:
         libs.append("Eigen3::Eigen")
+
+    if link_pcl:
+        libs.append("${PCL_LIBRARIES}")
 
     if not libs:
         return None
@@ -100,6 +103,11 @@ def main(args):
             f.write("find_package(SFML 2.5 COMPONENTS graphics REQUIRED)\n\n")
         if args.eigen:
             f.write("find_package(Eigen3 3.4 REQUIRED NO_MODULE)\n\n")
+        if args.pcl:
+            f.write("find_package(PCL 1.14 REQUIRED)\n")
+            f.write("include_directories(${PCL_INCLUDE_DIRS})\n")
+            f.write("link_directories(${PCL_LIBRARY_DIRS})\n")
+            f.write("add_definitions(${PCL_DEFINITIONS})\n\n")
 
     script = destination / "run_build"
     with open(script, "w") as f:
@@ -143,7 +151,7 @@ def main(args):
 
         with open(lib_dir / "CMakeLists.txt", "w") as f:
             f.write(lib_cmakelist_template.render(lib=lib))
-            link_libs = target_link_libs(lib, link_sfml=args.sfml, link_eigen=args.eigen)
+            link_libs = target_link_libs(lib, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl)
             if link_libs is not None:
                 f.write(link_libs)
 
@@ -162,7 +170,7 @@ def main(args):
     else:
         # if we didn't add the lib with deps above, we check if we should add them
         # directly to exe cmakelist here
-        link_libs = target_link_libs(exe, link_sfml=args.sfml, link_eigen=args.eigen)
+        link_libs = target_link_libs(exe, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl)
         if link_libs is not None:
             with open(exe_cmakelist, "a") as f:
                 f.write(link_libs)
@@ -176,5 +184,6 @@ if __name__ == "__main__":
     parser.add_argument("--exe", help="if provided, will be used as executable folder name.")
     parser.add_argument("--sfml", help="if set, will add sfml flags", action="store_true", default=False)
     parser.add_argument("--eigen", help="if set, will add eigen flags", action="store_true", default=False)
+    parser.add_argument("--pcl", help="if set, will add pcl flags", action="store_true", default=False)
 
     main(parser.parse_args())
