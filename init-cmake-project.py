@@ -70,7 +70,7 @@ lib_cpp_template = env.from_string(
     "}\n\n"
 )
 
-def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False, link_pcl=False):
+def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False, link_pcl=False, link_opencv=False):
     if link_sfml:
         libs.append("sfml-graphics")
 
@@ -79,6 +79,9 @@ def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False, link_pc
 
     if link_pcl:
         libs.append("${PCL_LIBRARIES}")
+
+    if link_opencv:
+        libs.append("${OpenCV_LIBS}")
 
     if not libs:
         return None
@@ -108,6 +111,9 @@ def main(args):
             f.write("include_directories(${PCL_INCLUDE_DIRS})\n")
             f.write("link_directories(${PCL_LIBRARY_DIRS})\n")
             f.write("add_definitions(${PCL_DEFINITIONS})\n\n")
+        if args.opencv:
+            f.write("find_package(OpenCV REQUIRED)\n")
+            f.write("include_directories(${OpenCV_INCLUDE_DIRS})\n\n")
 
     script = destination / "run_build"
     with open(script, "w") as f:
@@ -151,7 +157,7 @@ def main(args):
 
         with open(lib_dir / "CMakeLists.txt", "w") as f:
             f.write(lib_cmakelist_template.render(lib=lib))
-            link_libs = target_link_libs(lib, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl)
+            link_libs = target_link_libs(lib, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl, link_opencv=args.opencv)
             if link_libs is not None:
                 f.write(link_libs)
 
@@ -170,7 +176,7 @@ def main(args):
     else:
         # if we didn't add the lib with deps above, we check if we should add them
         # directly to exe cmakelist here
-        link_libs = target_link_libs(exe, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl)
+        link_libs = target_link_libs(exe, link_sfml=args.sfml, link_eigen=args.eigen, link_pcl=args.pcl, link_opencv=args.opencv)
         if link_libs is not None:
             with open(exe_cmakelist, "a") as f:
                 f.write(link_libs)
@@ -185,5 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("--sfml", help="if set, will add sfml flags", action="store_true", default=False)
     parser.add_argument("--eigen", help="if set, will add eigen flags", action="store_true", default=False)
     parser.add_argument("--pcl", help="if set, will add pcl flags", action="store_true", default=False)
+    parser.add_argument("--opencv", help="if set, will add opencv flags", action="store_true", default=False)
+    
 
     main(parser.parse_args())
