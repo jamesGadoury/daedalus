@@ -19,10 +19,6 @@ base_cmakelist_exe_modifier_template = env.from_string(
     "add_subdirectory({{exe}})\n\n"
 )
 
-cmakelist_template_sfml_addition = env.from_string(
-    "target_link_libraries({{target}} LINK_PUBLIC sfml-graphics)\n\n"
-)
-
 base_cmakelist_lib_modifier_template = env.from_string(
     "add_subdirectory({{lib}})\n\n"
 )
@@ -74,9 +70,12 @@ lib_cpp_template = env.from_string(
     "}\n\n"
 )
 
-def target_link_libs(target, libs=[], link_sfml=False):
+def target_link_libs(target, libs=[], link_sfml=False, link_eigen=False):
     if link_sfml:
         libs.append("sfml-graphics")
+
+    if link_eigen:
+        libs.append("Eigen3::Eigen")
 
     if not libs:
         return None
@@ -99,6 +98,8 @@ def main(args):
         f.write(base_cmakelist_template.render(project=project))
         if args.sfml:
             f.write("find_package(SFML 2.5 COMPONENTS graphics REQUIRED)\n\n")
+        if args.eigen:
+            f.write("find_package(Eigen3 3.4 REQUIRED NO_MODULE)\n\n")
 
     script = destination / "run_build"
     with open(script, "w") as f:
@@ -142,7 +143,7 @@ def main(args):
 
         with open(lib_dir / "CMakeLists.txt", "w") as f:
             f.write(lib_cmakelist_template.render(lib=lib))
-            link_libs = target_link_libs(lib, link_sfml=args.sfml)
+            link_libs = target_link_libs(lib, link_sfml=args.sfml, link_eigen=args.eigen)
             if link_libs is not None:
                 f.write(link_libs)
 
@@ -161,7 +162,7 @@ def main(args):
     else:
         # if we didn't add the lib with deps above, we check if we should add them
         # directly to exe cmakelist here
-        link_libs = target_link_libs(exe, link_sfml=args.sfml)
+        link_libs = target_link_libs(exe, link_sfml=args.sfml, link_eigen=args.eigen)
         if link_libs is not None:
             with open(exe_cmakelist, "a") as f:
                 f.write(link_libs)
@@ -174,5 +175,6 @@ if __name__ == "__main__":
     parser.add_argument("--lib", help="if provided, it will initialize a library subfolder.")
     parser.add_argument("--exe", help="if provided, will be used as executable folder name.")
     parser.add_argument("--sfml", help="if set, will add sfml flags", action="store_true", default=False)
+    parser.add_argument("--eigen", help="if set, will add eigen flags", action="store_true", default=False)
 
     main(parser.parse_args())
